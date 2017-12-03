@@ -214,7 +214,7 @@ class DockerStorage(DockerHostMixin, OpenShiftCheck):
         """Check if overlay storage driver is supported for this host. Return: result dict."""
         # check for xfs as backing store
         backing_fs = driver_status.get("Backing Filesystem", "[NONE]")
-        if backing_fs != "xfs":
+        if backing_fs != "extfs":
             msg = (
                 "Docker storage drivers 'overlay' and 'overlay2' are only supported with\n"
                 "'xfs' as the backing storage, but this host's storage is type '{fs}'."
