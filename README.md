@@ -16,20 +16,27 @@ tracked by
 [#2720](https://github.com/openshift/openshift-ansible/issues/2720).
 
 ## Getting the correct version
+When choosing an openshift release, ensure that the necessary origin packages
+are available in your distribution's repository.  By default, openshift-ansible
+will not configure extra repositories for testing or staging packages for
+end users.
 
-The
+We recommend using a release branch. We maintain stable branches
+corresponding to upstream Origin releases, e.g.: we guarantee an
+openshift-ansible 3.2 release will fully support an origin
+[1.2 release](https://github.com/openshift/openshift-ansible/tree/release-1.2).
+
+The most recent branch will often receive minor feature backports and
+fixes. Older branches will receive only critical fixes.
+
+In addition to the release branches, the master branch
 [master branch](https://github.com/openshift/openshift-ansible/tree/master)
 tracks our current work **in development** and should be compatible
 with the
 [Origin master branch](https://github.com/openshift/origin/tree/master)
 (code in development).
 
-In addition to the master branch, we maintain stable branches
-corresponding to upstream Origin releases, e.g.: we guarantee an
-openshift-ansible 3.2 release will fully support an origin
-[1.2 release](https://github.com/openshift/openshift-ansible/tree/release-1.2).
-The most recent branch will often receive minor feature backports and
-fixes.  Older branches will receive only critical fixes.
+
 
 **Getting the right openshift-ansible release**
 
@@ -54,7 +61,7 @@ Install base dependencies:
 
 Requirements:
 
-- Ansible >= 2.3.0.0
+- Ansible >= 2.4.3.0
 - Jinja >= 2.7
 - pyOpenSSL
 - python-lxml
@@ -67,7 +74,28 @@ Fedora:
 dnf install -y ansible pyOpenSSL python-cryptography python-lxml
 ```
 
-## OpenShift Installation Documentation:
+Additional requirements:
+
+Logging:
+
+- java-1.8.0-openjdk-headless
+- patch
+
+Metrics:
+
+- httpd-tools
+
+## Simple all-in-one localhost Installation
+This assumes that you've installed the base dependencies and you're running on
+Fedora or RHEL
+```
+git clone https://github.com/openshift/openshift-ansible
+cd openshift-ansible
+sudo ansible-playbook -i inventory/hosts.localhost playbooks/prerequisites.yml
+sudo ansible-playbook -i inventory/hosts.localhost playbooks/deploy_cluster.yml
+```
+
+## Complete Production Installation Documentation:
 
 - [OpenShift Enterprise](https://docs.openshift.com/enterprise/latest/install_config/install/advanced_install.html)
 - [OpenShift Origin](https://docs.openshift.org/latest/install_config/install/advanced_install.html)

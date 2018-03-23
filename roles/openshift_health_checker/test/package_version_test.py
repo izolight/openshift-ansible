@@ -1,12 +1,16 @@
 import pytest
 
-from openshift_checks.package_version import PackageVersion, OpenShiftCheckException
+from openshift_checks.package_version import PackageVersion
+from openshift_checks import OpenShiftCheckException
 
 
 def task_vars_for(openshift_release, deployment_type):
+    service_type_dict = {'origin': 'origin',
+                         'openshift-enterprise': 'atomic-openshift'}
+    service_type = service_type_dict[deployment_type]
     return dict(
         ansible_pkg_mgr='yum',
-        openshift=dict(common=dict(service_type=deployment_type)),
+        openshift_service_type=service_type,
         openshift_release=openshift_release,
         openshift_image_tag='v' + openshift_release,
         openshift_deployment_type=deployment_type,
@@ -15,7 +19,7 @@ def task_vars_for(openshift_release, deployment_type):
 
 def test_openshift_version_not_supported():
     check = PackageVersion(None, task_vars_for("1.2.3", 'origin'))
-    check.get_openshift_version_tuple = lambda: (3, 4, 1)  # won't be in the dict
+    check.get_major_minor_version = lambda: (3, 4, 1)  # won't be in the dict
 
     with pytest.raises(OpenShiftCheckException) as excinfo:
         check.get_required_ovs_version()
@@ -29,7 +33,7 @@ def test_openshift_version_not_supported():
 def test_invalid_openshift_release_format():
     task_vars = dict(
         ansible_pkg_mgr='yum',
-        openshift=dict(common=dict(service_type='origin')),
+        openshift_service_type='origin',
         openshift_image_tag='v0',
         openshift_deployment_type='origin',
     )
@@ -96,7 +100,7 @@ def test_docker_package_version(deployment_type, openshift_release, expected_doc
     assert result == return_value
 
 
-@pytest.mark.parametrize('group_names,is_containerized,is_active', [
+@pytest.mark.parametrize('group_names,openshift_is_containerized,is_active', [
     (['oo_masters_to_config'], False, True),
     # ensure check is skipped on containerized installs
     (['oo_masters_to_config'], True, False),
@@ -108,9 +112,9 @@ def test_docker_package_version(deployment_type, openshift_release, expected_doc
     (['lb'], False, False),
     (['nfs'], False, False),
 ])
-def test_package_version_skip_when_not_master_nor_node(group_names, is_containerized, is_active):
+def test_package_version_skip_when_not_master_nor_node(group_names, openshift_is_containerized, is_active):
     task_vars = dict(
         group_names=group_names,
-        openshift=dict(common=dict(is_containerized=is_containerized)),
+        openshift_is_containerized=openshift_is_containerized,
     )
     assert PackageVersion(None, task_vars).is_active() == is_active

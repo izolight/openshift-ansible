@@ -18,7 +18,7 @@
   retries: 120
   delay: 1
   changed_when: false
-  when: openshift.common.is_containerized | bool
+  when: openshift_is_containerized | bool
   delegate_to: "{{ openshift_master_host }}"
   run_once: true
 
@@ -34,26 +34,5 @@
   when: "'nodename' in openshift.node"
   delegate_to: "{{ openshift_master_host }}"
 
-- name: Set node schedulability
-  oc_adm_manage_node:
-    node: "{{ openshift.node.nodename | lower }}"
-    schedulable: "{{ 'true' if l_openshift_manage_schedulable | bool else 'false' }}"
-  retries: 10
-  delay: 5
-  register: node_schedulable
-  until: node_schedulable|succeeded
-  when: "'nodename' in openshift.node"
-  delegate_to: "{{ openshift_master_host }}"
-
-- name: Label nodes
-  oc_label:
-    name: "{{ openshift.node.nodename }}"
-    kind: node
-    state: add
-    labels: "{{ openshift.node.labels | oo_dict_to_list_of_dict }}"
-    namespace: default
-  when:
-    - "'nodename' in openshift.node"
-    - "'labels' in openshift.node"
-    - openshift.node.labels != {}
-  delegate_to: "{{ openshift_master_host }}"
+- include_tasks: config.yml
+- include_tasks: set_default_node_role.yml

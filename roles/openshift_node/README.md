@@ -15,10 +15,17 @@ Role Variables
 --------------
 From this role:
 
-| Name                       | Default value         |                                                          |
-|----------------------------|-----------------------|----------------------------------------------------------|
-| oreg_url                   | UNDEF (Optional)      | Default docker registry to use                           |
-| oreg_url_node              | UNDEF (Optional)      | Default docker registry to use, specifically on the node |
+| Name                         | Default value         |                                                          |
+|------------------------------|-----------------------|----------------------------------------------------------|
+| openshift_node_start_options | UNDEF (Optional)      | Options to pass to node start cmdline                    |
+| oreg_url                     | UNDEF (Optional)      | Default docker registry to use                           |
+| oreg_url_node                | UNDEF (Optional)      | Default docker registry to use, specifically on the node |
+
+openshift_node_start_options can be used for passing any start node option, e.g.:
+
+--enable=kubelet,plugins
+
+Which would have a node running without kube-proxy and dns.
 
 Dependencies
 ------------
@@ -33,9 +40,9 @@ Notes
 Currently we support re-labeling nodes but we don't re-schedule running pods nor remove existing labels. That means you will have to trigger the re-schedulling manually. To re-schedule your pods, just follow the steps below:
 
 ```
-oadm manage-node --schedulable=false ${NODE}
-oadm manage-node --drain ${NODE}
-oadm manage-node --schedulable=true ${NODE}
+oc adm manage-node --schedulable=false ${NODE}
+oc adm manage-node --drain ${NODE}
+oc adm manage-node --schedulable=true ${NODE}
 ````
 
 > If you are using version less than 1.5/3.5 you must replace `--drain` with `--evacuate`.

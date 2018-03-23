@@ -8,8 +8,23 @@
 # values here. We do it in the OSEv3 group vars. Do we need to add
 # some logic here?
 
-- name: run the initialization
-  include: ../../init/main.yml
+- import_playbook: ../../prerequisites.yml
 
-- name: run the config
-  include: ../../common/openshift-cluster/config.yml
+- name: Prepare the Nodes in the cluster for installation
+  any_errors_fatal: true
+  hosts: oo_all_hosts
+  become: yes
+  gather_facts: yes
+  tasks:
+  - name: Install dependencies
+    import_role:
+      name: openshift_openstack
+      tasks_from: node-packages.yml
+
+  - name: Configure Node
+    import_role:
+      name: openshift_openstack
+      tasks_from: node-configuration.yml
+
+- name: run the cluster deploy
+  import_playbook: ../../deploy_cluster.yml

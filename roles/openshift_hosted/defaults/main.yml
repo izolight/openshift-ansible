@@ -21,11 +21,18 @@ openshift_config_base: "/etc/origin"
 openshift_master_config_dir: "{{ openshift.common.config_base | default(openshift_config_base) }}/master"
 openshift_cluster_domain: 'cluster.local'
 
+openshift_hosted_images_dict:
+  origin: 'openshift/origin-${component}:${version}'
+  openshift-enterprise: 'openshift3/ose-${component}:${version}'
+
 ##########
 # Router #
 ##########
 r_openshift_hosted_router_firewall_enabled: "{{ os_firewall_enabled | default(True) }}"
 r_openshift_hosted_router_use_firewalld: "{{ os_firewall_use_firewalld | default(False) }}"
+
+openshift_hosted_router_selector: "{{ openshift_router_selector | default(openshift_hosted_infra_selector) }}"
+openshift_hosted_router_namespace: 'default'
 
 openshift_hosted_router_wait: "{{ not (openshift_master_bootstrap_enabled | default(False)) }}"
 
@@ -40,13 +47,14 @@ openshift_hosted_router_edits:
   value: 21600
   action: put
 
+openshift_hosted_router_registryurl: "{{ oreg_url_master | default(oreg_url) | default(openshift_hosted_images_dict[openshift_deployment_type]) | regex_replace('${version}' | regex_escape, openshift_image_tag | default('${version}')) }}"
 openshift_hosted_routers:
 - name: router
   replicas: "{{ replicas | default(1) }}"
   namespace: default
   serviceaccount: router
   selector: "{{ openshift_hosted_router_selector | default(None) }}"
-  images: "{{ openshift_hosted_router_image | default(None)  }}"
+  images: "{{ openshift_hosted_router_registryurl }}"
   edits: "{{ openshift_hosted_router_edits }}"
   stats_port: 1936
   ports:
@@ -63,6 +71,11 @@ r_openshift_hosted_router_os_firewall_allow: []
 ############
 # Registry #
 ############
+
+openshift_hosted_registry_selector: "{{ openshift_registry_selector | default(openshift_hosted_infra_selector) }}"
+openshift_hosted_registry_registryurl: "{{ oreg_url_master | default(oreg_url) | default(openshift_hosted_images_dict[openshift_deployment_type]) | regex_replace('${version}' | regex_escape, openshift_image_tag | default('${version}')) }}"
+openshift_hosted_registry_routecertificates: {}
+openshift_hosted_registry_routetermination: "passthrough"
 
 r_openshift_hosted_registry_firewall_enabled: "{{ os_firewall_enabled | default(True) }}"
 r_openshift_hosted_registry_use_firewalld: "{{ os_firewall_use_firewalld | default(False) }}"
@@ -95,8 +108,11 @@ openshift_hosted_registry_edits:
 openshift_hosted_registry_force:
 - False
 
-openshift_push_via_dns: False
+# TODO: this flag should be removed when master bootstrapping is enforced
+openshift_push_via_dns: True
 
 # NOTE: settting openshift_docker_hosted_registry_insecure may affect other roles
 openshift_hosted_docker_registry_insecure_default: "{{ openshift_docker_hosted_registry_insecure | default(False) }}"
 openshift_hosted_docker_registry_insecure: "{{ openshift_hosted_docker_registry_insecure_default }}"
+
+openshift_hosted_registry_storage_azure_blob_realm: core.windows.net

@@ -32,8 +32,8 @@
   when:
   - openshift_docker_alternative_creds | default(False) | bool
   - oreg_auth_user is defined
-  - (not docker_cli_auth_credentials_stat.stat.exists or oreg_auth_credentials_replace) | bool
-  register: master_oreg_auth_credentials_create
+  - (not master_oreg_auth_credentials_stat.stat.exists or oreg_auth_credentials_replace) | bool
+  register: master_oreg_auth_credentials_create_alt
   notify:
   - restart master api
   - restart master controllers
@@ -43,6 +43,10 @@
   set_fact:
     l_bind_docker_reg_auth: True
   when:
-  - openshift.common.is_containerized | bool
+  - openshift_is_containerized | bool
   - oreg_auth_user is defined
-  - (master_oreg_auth_credentials_stat.stat.exists or oreg_auth_credentials_replace or master_oreg_auth_credentials_create.changed) | bool
+  - >
+      (master_oreg_auth_credentials_stat.stat.exists
+      or oreg_auth_credentials_replace
+      or master_oreg_auth_credentials_create.changed
+      or master_oreg_auth_credentials_create_alt.changed) | bool

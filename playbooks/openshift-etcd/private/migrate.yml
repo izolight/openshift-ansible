@@ -2,7 +2,6 @@
 - name: Check if the master has embedded etcd
   hosts: localhost
   connection: local
-  become: no
   gather_facts: no
   tags:
   - always
@@ -15,11 +14,10 @@
 - name: Run pre-checks
   hosts: oo_etcd_to_migrate
   tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: migrate.pre_check
+      tasks_from: migrate.pre_check.yml
     vars:
-      r_etcd_common_embedded_etcd: "{{ groups.oo_etcd_to_config | default([]) | length == 0 }}"
       etcd_peer: "{{ ansible_default_ipv4.address }}"
 
 # TODO: This will be different for release-3.6 branch
@@ -28,8 +26,8 @@
   tasks:
   - set_fact:
       master_services:
-      - "{{ openshift.common.service_type + '-master-controllers' }}"
-      - "{{ openshift.common.service_type + '-master-api' }}"
+      - "{{ openshift_service_type + '-master-controllers' }}"
+      - "{{ openshift_service_type + '-master-api' }}"
   - debug:
       msg: "master service name: {{ master_services }}"
   - name: Stop masters
@@ -44,23 +42,21 @@
   roles:
   - role: openshift_facts
   post_tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: backup
+      tasks_from: backup.yml
     vars:
       r_etcd_common_backup_tag: pre-migration
-      r_etcd_common_embedded_etcd: "{{ groups.oo_etcd_to_config | default([]) | length == 0 }}"
       r_etcd_common_backup_sufix_name: "{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
 
 - name: Gate on etcd backup
   hosts: localhost
   connection: local
-  become: no
   tasks:
   - set_fact:
       etcd_backup_completed: "{{ hostvars
-                                 | oo_select_keys(groups.oo_etcd_to_migrate)
-                                 | oo_collect('inventory_hostname', {'r_etcd_common_backup_complete': true}) }}"
+                                 | lib_utils_oo_select_keys(groups.oo_etcd_to_migrate)
+                                 | lib_utils_oo_collect('inventory_hostname', {'r_etcd_common_backup_complete': true}) }}"
   - set_fact:
       etcd_backup_failed: "{{ groups.oo_etcd_to_migrate | difference(etcd_backup_completed) | list }}"
   - fail:
@@ -72,19 +68,18 @@
   hosts: oo_etcd_to_migrate
   gather_facts: no
   pre_tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: disable_etcd
+      tasks_from: disable_etcd.yml
 
 - name: Migrate data on first etcd
   hosts: oo_etcd_to_migrate[0]
   gather_facts: no
   tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: migrate
+      tasks_from: migrate.yml
     vars:
-      r_etcd_common_embedded_etcd: "{{ groups.oo_etcd_to_config | default([]) | length == 0 }}"
       etcd_peer: "{{ openshift.common.ip }}"
       etcd_url_scheme: "https"
       etcd_peer_url_scheme: "https"
@@ -93,11 +88,10 @@
   hosts: oo_etcd_to_migrate[1:]
   gather_facts: no
   tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: clean_data
+      tasks_from: clean_data.yml
     vars:
-      r_etcd_common_embedded_etcd: "{{ groups.oo_etcd_to_config | default([]) | length == 0 }}"
       etcd_peer: "{{ openshift.common.ip }}"
       etcd_url_scheme: "https"
       etcd_peer_url_scheme: "https"
@@ -122,17 +116,17 @@
   tasks:
   - set_fact:
       etcd_migration_completed: "{{ hostvars
-                                 | oo_select_keys(groups.oo_etcd_to_migrate)
-                                 | oo_collect('inventory_hostname', {'r_etcd_migrate_success': true}) }}"
+                                 | lib_utils_oo_select_keys(groups.oo_etcd_to_migrate)
+                                 | lib_utils_oo_collect('inventory_hostname', {'r_etcd_migrate_success': true}) }}"
   - set_fact:
       etcd_migration_failed: "{{ groups.oo_etcd_to_migrate | difference(etcd_migration_completed) | list }}"
 
 - name: Add TTLs on the first master
   hosts: oo_first_master[0]
   tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: migrate.add_ttls
+      tasks_from: migrate.add_ttls.yml
     vars:
       etcd_peer: "{{ hostvars[groups.oo_etcd_to_migrate.0].openshift.common.ip }}"
       etcd_url_scheme: "https"
@@ -142,9 +136,9 @@
 - name: Configure masters if etcd data migration is succesfull
   hosts: oo_masters_to_config
   tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: migrate.configure_master
+      tasks_from: migrate.configure_master.yml
     when: etcd_migration_failed | length == 0
   - debug:
       msg: "Skipping master re-configuration since migration failed."

@@ -12,12 +12,11 @@
   hosts: oo_new_etcd_to_config
   serial: 1
   any_errors_fatal: true
-  vars:
-    etcd_ca_host: "{{ groups.oo_etcd_to_config.0 }}"
   pre_tasks:
   - name: Add new etcd members to cluster
     command: >
-      /usr/bin/etcdctl --cert-file {{ etcd_peer_cert_file }}
+      {{ r_etcd_common_etcdctl_command }}
+                       --cert-file {{ etcd_peer_cert_file }}
                        --key-file {{ etcd_peer_key_file }}
                        --ca-file {{ etcd_peer_ca_file }}
                        -C {{ etcd_peer_url_scheme }}://{{ hostvars[etcd_ca_host].etcd_ip }}:{{ etcd_client_port }}
@@ -30,9 +29,9 @@
     retries: 3
     delay: 10
     until: etcd_add_check.rc == 0
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: server_certificates
+      tasks_from: server_certificates.yml
     vars:
       etcd_peers: "{{ groups.oo_new_etcd_to_config | default([], true) }}"
       etcd_certificates_etcd_hosts: "{{ groups.oo_new_etcd_to_config | default([], true) }}"
@@ -42,7 +41,6 @@
   - role: openshift_etcd
     when: etcd_add_check.rc == 0
     etcd_peers: "{{ groups.oo_etcd_to_config | union(groups.oo_new_etcd_to_config)| default([], true) }}"
-    etcd_ca_host: "{{ groups.oo_etcd_to_config.0 }}"
     etcd_certificates_etcd_hosts: "{{ groups.oo_etcd_to_config | default([], true) }}"
     etcd_initial_cluster_state: "existing"
     etcd_initial_cluster: "{{ etcd_add_check.stdout_lines[3] | regex_replace('ETCD_INITIAL_CLUSTER=','') | regex_replace('\"','') }}"
@@ -52,7 +50,8 @@
   post_tasks:
   - name: Verify cluster is stable
     command: >
-      /usr/bin/etcdctl --cert-file {{ etcd_peer_cert_file }}
+      {{ r_etcd_common_etcdctl_command }}
+                       --cert-file {{ etcd_peer_cert_file }}
                        --key-file {{ etcd_peer_key_file }}
                        --ca-file {{ etcd_peer_ca_file }}
                        -C {{ etcd_peer_url_scheme }}://{{ hostvars[etcd_ca_host].etcd_hostname }}:{{ etcd_client_port }}
@@ -66,16 +65,14 @@
   hosts: oo_masters_to_config
   serial: 1
   vars:
-    etcd_ca_host: "{{ groups.oo_etcd_to_config.0 }}"
-    openshift_ca_host: "{{ groups.oo_first_master.0 }}"
     openshift_master_etcd_hosts: "{{ hostvars
-                                     | oo_select_keys(groups['oo_etcd_to_config'] | union(groups['oo_new_etcd_to_config'] | default([]) ))
-                                     | oo_collect('openshift.common.hostname')
+                                     | lib_utils_oo_select_keys(groups['oo_etcd_to_config'] | union(groups['oo_new_etcd_to_config'] | default([]) ))
+                                     | lib_utils_oo_collect('openshift.common.hostname')
                                      | default(none, true) }}"
     openshift_master_etcd_port: "{{ (etcd_client_port | default('2379')) if (groups.oo_etcd_to_config is defined and groups.oo_etcd_to_config) else none }}"
   roles:
   - role: openshift_master_facts
   post_tasks:
-  - include_role:
+  - import_role:
       name: openshift_master
-      tasks_from: update_etcd_client_urls
+      tasks_from: update_etcd_client_urls.yml

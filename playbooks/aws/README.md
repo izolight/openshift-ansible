@@ -75,7 +75,7 @@ If customization is required for the instances, scale groups, or any other confi
 In order to create the bootstrap-able AMI we need to create a basic openshift-ansible inventory.  This enables us to create the AMI using the openshift-ansible node roles.  This inventory should not include any hosts, but certain variables should be defined in the appropriate groups, just as deploying a cluster
 using the normal openshift-ansible method.  See provisioning-inventory.example.ini for an example.
 
-There are more examples of cluster inventory settings [`here`](../../inventory/byo/).
+There are more examples of cluster inventory settings [`here`](../../inventory/).
 
 #### Step 0 (optional)
 
@@ -134,11 +134,11 @@ At this point we have successfully created the infrastructure including the mast
 Now it is time to install Openshift using the openshift-ansible installer.  This can be achieved by running the following playbook:
 
 ```
-$ ansible-playbook -i inventory.yml install.yml @provisioning_vars.yml
+$ ansible-playbook -i inventory.yml install.yml -e @provisioning_vars.yml
 ```
 This playbook accomplishes the following:
 1. Builds a dynamic inventory file by querying AWS.
-2. Runs the [`byo`](../../common/openshift-cluster/config.yml)
+2. Runs the [`deploy_cluster.yml`](../deploy_cluster.yml)
 
 Once this playbook completes, the cluster masters should be installed and configured.
 
@@ -198,3 +198,21 @@ At this point your cluster should be ready for workloads.  Proceed to deploy app
 ### Still to come
 
 There are more enhancements that are arriving for provisioning.  These will include more playbooks that enhance the provisioning capabilities.
+
+## Uninstall / Deprovisioning
+
+To undo the work done by the prerequisites playbook, simply call the uninstall_prerequisites.yml playbook. You will have needed to remove any of the other objects (ie ELBs, instances, etc) before attempting. You should use the same inventory file and provisioning_vars.yml file that was used during provisioning.
+
+```
+ansible-playbook -i <previous inventory file> -e @<previous provisioning_vars file> uninstall_prerequisites.yml
+```
+
+This should result in removal of the security groups and VPC that were created.
+
+Cleaning up the S3 bucket contents can be accomplished with:
+
+```
+ansible-playbook -i <previous inventory file> -e @<previous provisioning_vars file> uninstall_s3.yml
+```
+
+NOTE: If you want to also remove the ssh keys that were uploaded (**these ssh keys would be shared if you are running multiple clusters in the same AWS account** so we don't remove these by default) then you should add 'openshift_aws_enable_uninstall_shared_objects: True' to your provisioning_vars.yml file.

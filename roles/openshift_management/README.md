@@ -89,17 +89,6 @@ App is created` task, we recommend running the
 [uninstall scripts](#uninstall) first before running the installer
 again.
 
-### Beta
-
-Only required for enterprise
-(`openshift_deployment_type=openshift-enterprise`) users:
-
-* `openshift_management_install_beta` - by setting this value to
-  `true` you acknowledge that this software is currently in BETA and
-  support may be limited nonexistent. This is required to begin the
-  installation.
-
-
 # Requirements
 
 The **default** requirements are listed in the table below. These can
@@ -139,7 +128,6 @@ installer.
 | `openshift_management_project`                       | **No**   | `openshift-management`         | Namespace for the installation.     |
 | `openshift_management_project_description`           | **No**   | *CloudForms Management Engine* | Namespace/project description.      |
 | `openshift_management_install_management`            | **No**   | `false`                        | Boolean, set to `true` to install the application |
-| `openshift_management_install_beta`                  | **No**   | `false`                        | Boolean, by setting this value to `true` you acknowledge that this software is currently in BETA and support may be limited. Only required for *openshift-enterprise* users. |
 | `openshift_management_username`                      | **No**   | `admin`                        | Default management username. Changing this values **does not change the username**. Only change this value if you have changed the name already and are running integration scripts (such as the [add container provider](#container-provider) script) |
 | `openshift_management_password`                      | **No**   | `smartvm`                      | Default management password. Changing this values **does not change the password**. Only change this value if you have changed the password already and are running integration scripts (such as the [add-container-provider](#container-provider) script) |
 | **PRODUCT CHOICE**  | | | | |
@@ -164,14 +152,14 @@ away.
 If you want to install CFME/MIQ at the same time you install your
 OCP/Origin cluster, ensure that `openshift_management_install_management` is set
 to `true` in your inventory. Call the standard
-`playbooks/byo/config.yml` playbook to begin the cluster and CFME/MIQ
+`playbooks/deploy_cluster.yml` playbook to begin the cluster and CFME/MIQ
 installation.
 
 If you are installing CFME/MIQ on an *already provisioned cluster*
 then you can call the CFME/MIQ playbook directly:
 
 ```
-$ ansible-playbook -v -i <YOUR_INVENTORY> playbooks/byo/openshift-management/config.yml
+$ ansible-playbook -v -i <YOUR_INVENTORY> playbooks/openshift-management/config.yml
 ```
 
 *Note: Use `miq-template` in the following examples for ManageIQ installs*
@@ -489,7 +477,7 @@ This playbook will:
 
 
 ```
-$ ansible-playbook -v -i <YOUR_INVENTORY> playbooks/byo/openshift-management/add_container_provider.yml
+$ ansible-playbook -v -i <YOUR_INVENTORY> playbooks/openshift-management/add_container_provider.yml
 ```
 
 ## Multiple Providers
@@ -567,7 +555,7 @@ the config file path.
 
 ```
 $ ansible-playbook -v -e container_providers_config=/tmp/cp.yml \
-      playbooks/byo/openshift-management/add_many_container_providers.yml
+      playbooks/openshift-management/add_many_container_providers.yml
 ```
 
 Afterwards you will find two new container providers in your
@@ -579,7 +567,7 @@ to see an overview.
 This role includes a playbook to uninstall and erase the CFME/MIQ
 installation:
 
-* `playbooks/byo/openshift-management/uninstall.yml`
+* `playbooks/openshift-management/uninstall.yml`
 
 NFS export definitions and data stored on NFS exports are not
 automatically removed. You are urged to manually erase any data from

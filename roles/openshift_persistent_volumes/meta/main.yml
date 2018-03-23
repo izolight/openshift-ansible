@@ -9,4 +9,6 @@ galaxy_info:
   - name: EL
     versions:
     - 7
-dependencies: {}
+dependencies:
+- role: openshift_facts
+- role: lib_utils

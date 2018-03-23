@@ -18,11 +18,11 @@
   - role: openshift_facts
   tasks:
   - name: Check the master API is ready
-    include_role:
+    import_role:
       name: openshift_master
-      tasks_from: check_master_api_is_ready
+      tasks_from: check_master_api_is_ready.yml
   - set_fact:
-      master_service: "{{ openshift.common.service_type + '-master' }}"
+      master_service: "{{ openshift_service_type + '-master' }}"
       embedded_etcd_backup_suffix: "{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
   - debug:
       msg: "master service name: {{ master_service }}"
@@ -31,18 +31,18 @@
       name: "{{ master_service }}"
       state: stopped
   # 2. backup embedded etcd
-  # Can't use with_items with include_role: https://github.com/ansible/ansible/issues/21285
-  - include_role:
+  # Can't use with_items with import_role: https://github.com/ansible/ansible/issues/21285
+  - import_role:
       name: etcd
-      tasks_from: backup
+      tasks_from: backup.yml
     vars:
       r_etcd_common_backup_tag: pre-migrate
       r_etcd_common_embedded_etcd: "{{ true }}"
       r_etcd_common_backup_sufix_name: "{{ embedded_etcd_backup_suffix }}"
 
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: backup.archive
+      tasks_from: backup.archive.yml
     vars:
       r_etcd_common_backup_tag: pre-migrate
       r_etcd_common_embedded_etcd: "{{ true }}"
@@ -56,9 +56,9 @@
 - name: Backup etcd client certificates for master host
   hosts: oo_first_master
   tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: backup_master_etcd_certificates
+      tasks_from: backup_master_etcd_certificates.yml
 
 - name: Redeploy master etcd certificates
   import_playbook: master_etcd_certificates.yml
@@ -73,12 +73,12 @@
   hosts: oo_etcd_to_config[0]
   gather_facts: no
   pre_tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: disable_etcd
-  - include_role:
+      tasks_from: disable_etcd.yml
+  - import_role:
       name: etcd
-      tasks_from: clean_data
+      tasks_from: clean_data.yml
 
 # 6. copy the embedded etcd backup to the external host
 # TODO(jchaloup): if the etcd and first master are on the same host, just copy the directory
@@ -89,11 +89,14 @@
     local_action: command mktemp -d /tmp/etcd_backup-XXXXXXX
     register: g_etcd_client_mktemp
     changed_when: False
-    become: no
 
-  - include_role:
+  - name: Chmod local temp directory for syncing etcd backup
+    local_action: command chmod 777 "{{ g_etcd_client_mktemp.stdout }}"
+    changed_when: False
+
+  - import_role:
       name: etcd
-      tasks_from: backup.fetch
+      tasks_from: backup.fetch.yml
     vars:
       etcd_backup_sync_directory: "{{ g_etcd_client_mktemp.stdout }}"
       r_etcd_common_backup_tag: pre-migrate
@@ -101,9 +104,9 @@
       r_etcd_common_backup_sufix_name: "{{ hostvars[groups.oo_first_master.0].embedded_etcd_backup_suffix }}"
     delegate_to: "{{ groups.oo_first_master[0] }}"
 
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: backup.copy
+      tasks_from: backup.copy.yml
     vars:
       etcd_backup_sync_directory: "{{ g_etcd_client_mktemp.stdout }}"
       r_etcd_common_backup_tag: pre-migrate
@@ -116,22 +119,21 @@
   - name: Delete temporary directory
     local_action: file path="{{ g_etcd_client_mktemp.stdout }}" state=absent
     changed_when: False
-    become: no
 
 # 7. force new cluster from the backup
 - name: Force new etcd cluster
   hosts: oo_etcd_to_config[0]
   tasks:
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: backup.unarchive
+      tasks_from: backup.unarchive.yml
     vars:
       r_etcd_common_backup_tag: pre-migrate
       r_etcd_common_backup_sufix_name: "{{ hostvars[groups.oo_first_master.0].embedded_etcd_backup_suffix }}"
 
-  - include_role:
+  - import_role:
       name: etcd
-      tasks_from: backup.force_new_cluster
+      tasks_from: backup.force_new_cluster.yml
     vars:
       r_etcd_common_backup_tag: pre-migrate
       r_etcd_common_backup_sufix_name: "{{ hostvars[groups.oo_first_master.0].embedded_etcd_backup_suffix }}"
@@ -143,9 +145,9 @@
 - name: Configure master to use external etcd
   hosts: oo_first_master
   tasks:
-  - include_role:
+  - import_role:
       name: openshift_master
-      tasks_from: configure_external_etcd
+      tasks_from: configure_external_etcd.yml
     vars:
       etcd_peer_url_scheme: "https"
       etcd_ip: "{{ hostvars[groups.oo_etcd_to_config.0].openshift.common.ip }}"

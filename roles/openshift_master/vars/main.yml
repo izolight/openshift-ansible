@@ -1,41 +1,86 @@
 ---
-openshift_master_loopback_config: "{{ openshift_master_config_dir }}/openshift-master.kubeconfig"
-loopback_context_string: "current-context: {{ openshift.master.loopback_context_name }}"
-openshift_master_session_secrets_file: "{{ openshift_master_config_dir }}/session-secrets.yaml"
-openshift_master_policy: "{{ openshift_master_config_dir }}/policy.json"
+# openshift_master_facts_default_predicates is a custom lookup plugin in
+# role lib_utils
+osm_prev_predicates: "{{ lookup('openshift_master_facts_default_predicates', short_version=openshift_upgrade_min }}"
+osm_prev_predicates_no_region: "{{ lookup('openshift_master_facts_default_predicates', short_version=openshift_upgrade_min, regions_enabled=False) }}"
+osm_prev_predicates_cloud_provider: "{{ lookup('openshift_master_facts_default_predicates', short_version=openshift_upgrade_min, cloud_provider_enabled=False) }}"
+osm_default_predicates_no_region: "{{ lookup('openshift_master_facts_default_predicates', regions_enabled=False) }}"
+osm_default_predicates_cloud_provider: "{{ lookup('openshift_master_facts_default_predicates', cloud_provider_enabled=True) }}"
+# osm_older_predicates are the set of predicates that have previously been
+# hard-coded into openshift_facts
+osm_older_predicates:
+- - name: MatchNodeSelector
+  - name: PodFitsResources
+  - name: PodFitsPorts
+  - name: NoDiskConflict
+  - name: NoVolumeZoneConflict
+  - name: MaxEBSVolumeCount
+  - name: MaxGCEPDVolumeCount
+  - name: Region
+    argument:
+      serviceAffinity:
+        labels:
+        - region
+- - name: MatchNodeSelector
+  - name: PodFitsResources
+  - name: PodFitsPorts
+  - name: NoDiskConflict
+  - name: NoVolumeZoneConflict
+  - name: Region
+    argument:
+      serviceAffinity:
+        labels:
+        - region
+- - name: MatchNodeSelector
+  - name: PodFitsResources
+  - name: PodFitsPorts
+  - name: NoDiskConflict
+  - name: Region
+    argument:
+      serviceAffinity:
+        labels:
+        - region
+# osm_older_predicates_no_region are the set of predicates that have previously
+# been hard-coded into openshift_facts, with the Region predicate removed
+osm_older_predicates_no_region:
+- - name: MatchNodeSelector
+  - name: PodFitsResources
+  - name: PodFitsPorts
+  - name: NoDiskConflict
+  - name: NoVolumeZoneConflict
+  - name: MaxEBSVolumeCount
+  - name: MaxGCEPDVolumeCount
+- - name: MatchNodeSelector
+  - name: PodFitsResources
+  - name: PodFitsPorts
+  - name: NoDiskConflict
+  - name: NoVolumeZoneConflict
+- - name: MatchNodeSelector
+  - name: PodFitsResources
+  - name: PodFitsPorts
+  - name: NoDiskConflict
 
-scheduler_config:
-  kind: Policy
-  apiVersion: v1
-  predicates: "{{ openshift_master_scheduler_predicates
-                  | default(openshift_master_scheduler_current_predicates
-                            | default(openshift_master_scheduler_default_predicates)) }}"
-  priorities: "{{ openshift_master_scheduler_priorities
-                  | default(openshift_master_scheduler_current_priorities
-                            | default(openshift_master_scheduler_default_priorities)) }}"
-
-openshift_master_valid_grant_methods:
-- auto
-- prompt
-- deny
-
-openshift_master_is_scaleup_host: False
-
-# These defaults assume forcing journald persistence, fsync to disk once
-# a second, rate-limiting to 10,000 logs a second, no forwarding to
-# syslog or wall, using 8GB of disk space maximum, using 10MB journal
-# files, keeping only a days worth of logs per journal file, and
-# retaining journal files no longer than a month.
-journald_vars_to_replace:
-- { var: Storage, val: persistent }
-- { var: Compress, val: yes }
-- { var: SyncIntervalSec, val: 1s }
-- { var: RateLimitInterval, val: 1s }
-- { var: RateLimitBurst, val: 10000 }
-- { var: SystemMaxUse, val: 8G }
-- { var: SystemKeepFree, val: 20% }
-- { var: SystemMaxFileSize, val: 10M }
-- { var: MaxRetentionSec, val: 1month }
-- { var: MaxFileSec, val: 1day }
-- { var: ForwardToSyslog, val: no }
-- { var: ForwardToWall, val: no }
+osm_prev_priorities: "{{ lookup('openshift_master_facts_default_priorities', short_version=openshift_upgrade_min) }}"
+osm_prev_priorities_no_zone: "{{ lookup('openshift_master_facts_default_priorities', short_version=openshift_upgrade_min, zones_enabled=False) }}"
+osm_prev_priorities_cloud_provider: "{{ lookup('openshift_master_facts_default_priorities', short_version=openshift_upgrade_min, cloud_provider_enabled=True) }}"
+osm_default_priorities_no_zone: "{{ lookup('openshift_master_facts_default_priorities', zones_enabled=False) }}"
+osm_default_priorities_cloud_provider: "{{ lookup('openshift_master_facts_default_priorities', cloud_provider_enabled=True) }}"
+# osm_older_priorities are the set of priorities that have previously been
+# hard-coded into openshift_facts
+osm_older_priorities:
+- - name: LeastRequestedPriority
+    weight: 1
+  - name: SelectorSpreadPriority
+    weight: 1
+  - name: Zone
+    weight: 2
+    argument:
+      serviceAntiAffinity:
+        label: zone
+# osm_older_priorities_no_region are the set of priorities that have previously
+# been hard-coded into openshift_facts, with the Zone priority removed
+osm_older_priorities_no_zone:
+- - name: LeastRequestedPriority
+    weight: 1
+  - name: SelectorSpreadPriority
+    weight: 1

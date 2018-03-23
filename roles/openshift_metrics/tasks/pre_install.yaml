@@ -14,8 +14,16 @@
 
 - name: list existing secrets
   command: >
-    {{ openshift.common.client_binary }} -n {{ openshift_metrics_project }}
+    {{ openshift_client_binary }} -n {{ openshift_metrics_project }}
     --config={{ mktemp.stdout }}/admin.kubeconfig
     get secrets -o name
   register: metrics_secrets
+  changed_when: false
+
+- name: list existing metrics server secrets
+  command: >
+    {{ openshift_client_binary }} -n {{ openshift_metrics_server_project }}
+    --config={{ mktemp.stdout }}/admin.kubeconfig
+    get secrets -o name
+  register: existing_metrics_server_secrets
   changed_when: false

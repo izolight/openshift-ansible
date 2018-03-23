@@ -1,7 +1,7 @@
 ---
 - name: Ensure device mapper modules loaded
   template:
-    src: glusterfs.conf
+    src: glusterfs.conf.j2
     dest: /etc/modules-load.d/glusterfs.conf
   register: km
 
@@ -9,4 +9,4 @@
   systemd:
     name: systemd-modules-load.service
     state: restarted
-  when: km | changed
+  when: km is changed

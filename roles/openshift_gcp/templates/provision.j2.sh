@@ -2,27 +2,6 @@
 
 set -euo pipefail
 
-if [[ -n "{{ openshift_gcp_ssh_private_key }}" ]]; then
-    # Create SSH key for GCE
-    if [ ! -f "{{ openshift_gcp_ssh_private_key }}" ]; then
-        ssh-keygen -t rsa -f "{{ openshift_gcp_ssh_private_key }}" -C gce-provision-cloud-user -N ''
-        ssh-add "{{ openshift_gcp_ssh_private_key }}" || true
-    fi
-
-    # Check if the ~/.ssh/google_compute_engine.pub key is in the project metadata, and if not, add it there
-    pub_key=$(cut -d ' ' -f 2 < "{{ openshift_gcp_ssh_private_key }}.pub")
-    key_tmp_file='/tmp/ocp-gce-keys'
-    if ! gcloud --project "{{ openshift_gcp_project }}" compute project-info describe | grep -q "$pub_key"; then
-        if gcloud --project "{{ openshift_gcp_project }}" compute project-info describe | grep -q ssh-rsa; then
-            gcloud --project "{{ openshift_gcp_project }}" compute project-info describe | grep ssh-rsa | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/value: //' > "$key_tmp_file"
-        fi
-        echo -n 'cloud-user:' >> "$key_tmp_file"
-        cat "{{ openshift_gcp_ssh_private_key }}.pub" >> "$key_tmp_file"
-        gcloud --project "{{ openshift_gcp_project }}" compute project-info add-metadata --metadata-from-file "sshKeys=${key_tmp_file}"
-        rm -f "$key_tmp_file"
-    fi
-fi
-
 metadata=""
 if [[ -n "{{ openshift_gcp_startup_script_file }}" ]]; then
     if [[ ! -f "{{ openshift_gcp_startup_script_file }}" ]]; then
@@ -303,12 +282,12 @@ done
 ) &
 
 # Create bucket for registry
-( 
+(
 if ! gsutil ls -p "{{ openshift_gcp_project }}" "gs://{{ openshift_gcp_registry_bucket_name }}" &>/dev/null; then
     gsutil mb -p "{{ openshift_gcp_project }}" -l "{{ openshift_gcp_region }}" "gs://{{ openshift_gcp_registry_bucket_name }}"
 else
     echo "Bucket '{{ openshift_gcp_registry_bucket_name }}' already exists"
-fi 
+fi
 ) &
 
 # wait until all node groups are stable

@@ -115,12 +115,12 @@ providing the location of the generated certificates to the individual roles.
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
 
 ## Elasticsearch
-- include_role:
+- import_role:
     name: openshift_logging_elasticsearch
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
 
-- include_role:
+- import_role:
     name: openshift_logging_elasticsearch
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
@@ -130,7 +130,7 @@ providing the location of the generated certificates to the individual roles.
 
 
 ## Kibana
-- include_role:
+- import_role:
     name: openshift_logging_kibana
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
@@ -144,7 +144,7 @@ providing the location of the generated certificates to the individual roles.
     openshift_logging_kibana_es_port: "{{ openshift_logging_es_port }}"
     openshift_logging_kibana_image_pull_secret: "{{ openshift_logging_image_pull_secret }}"
 
-- include_role:
+- import_role:
     name: openshift_logging_kibana
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
@@ -173,7 +173,7 @@ providing the location of the generated certificates to the individual roles.
 
 
 ## Curator
-- include_role:
+- import_role:
     name: openshift_logging_curator
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
@@ -183,7 +183,7 @@ providing the location of the generated certificates to the individual roles.
     openshift_logging_curator_image_version: "{{ openshift_logging_image_version }}"
     openshift_logging_curator_image_pull_secret: "{{ openshift_logging_image_pull_secret }}"
 
-- include_role:
+- import_role:
     name: openshift_logging_curator
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
@@ -201,7 +201,7 @@ providing the location of the generated certificates to the individual roles.
 
 
 ## Fluentd
-- include_role:
+- import_role:
     name: openshift_logging_fluentd
   vars:
     generated_certs_dir: "{{openshift.common.config_base}}/logging"
@@ -262,7 +262,7 @@ dependencies:
 
 - name: "Create logging project"
   command: >
-    {{ openshift.common.admin_binary }} --config={{ mktemp.stdout }}/admin.kubeconfig new-project {{openshift_logging_namespace}}
+    {{ openshift.common.client_binary }} adm --config={{ mktemp.stdout }}/admin.kubeconfig new-project {{openshift_logging_namespace}}
   when: not ansible_check_mode and "not found" in logging_project_result.stderr
 
 - name: Create logging cert directory
